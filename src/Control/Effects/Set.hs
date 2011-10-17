@@ -10,7 +10,7 @@ choose p as = operation p $ \k -> do
   sets <- mapM k as
   return $ Set.unions sets
 
-set :: (Monad m, Ord a) => Handler (Set.Set a) m a (Set.Set a)
+set :: (Monad m, Ord a) => Handler (Set.Set a) (Set.Set a) m a
 set = Handler
   { ret = return . Set.singleton
   , fin = return

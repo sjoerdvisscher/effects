@@ -1,5 +1,5 @@
 name:                effects
-version:             0
+version:             0.1
 synopsis:            Computational Effects
 
 description:         An alternative to Monad Transformers.

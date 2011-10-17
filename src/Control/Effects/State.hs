@@ -9,7 +9,7 @@ get p = operation p $ \k -> return $ \s -> do r <- k s; r s
 put :: (c ~ ContT (s -> m r) m, AutoLift c n, Monad m) => Proxy c -> s -> n ()
 put p s' = operation p $ \k -> return $ \_ -> do r <- k (); r s'
 
-ref :: Monad m => s -> Handler (s -> m a) m a a
+ref :: Monad m => s -> Handler (s -> m a) a m a
 ref s_init = Handler
   { ret = return . return . return
   , fin = \f -> f s_init

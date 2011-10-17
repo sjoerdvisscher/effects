@@ -5,12 +5,12 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Cont
 import Data.Functor.Identity
 
-data Handler e m a r = Handler
+data Handler e r m a = Handler
   { ret :: a -> m e
   , fin :: e -> m r
   }
 
-with :: Monad m => Handler e m a r -> (Proxy (ContT e m) -> ContT e m a) -> m r
+with :: Monad m => Handler e r m a -> (Proxy (ContT e m) -> ContT e m a) -> m r
 with h f = runContT (f Proxy) (ret h) >>= fin h
 
 operation :: forall m m' n a r. (m ~ ContT r m', AutoLift m n) => Proxy m -> ((a -> m' r) -> m' r) -> n a
@@ -20,7 +20,7 @@ run :: Cont a a -> a
 run m = runCont m id
 
 
-ioHandler :: Handler a IO a a
+ioHandler :: Handler a a IO a
 ioHandler = Handler return return
 
 runIO :: ContT () IO () -> IO ()
