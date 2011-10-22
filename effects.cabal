@@ -1,5 +1,5 @@
 name:                effects
-version:             0.1
+version:             0.2
 synopsis:            Computational Effects
 
 description:         An alternative to Monad Transformers.
@@ -20,7 +20,6 @@ Library
   HS-Source-Dirs:      src
   build-depends:       base >= 3 && < 5, 
                        containers  >= 0.4 && < 0.5,
-                       transformers >= 0.2 && < 0.3,
                        void
   exposed-modules:     
     Control.Effects

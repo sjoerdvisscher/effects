@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, ScopedTypeVariables, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, GADTs, TypeFamilies, ScopedTypeVariables, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
+{-# OPTIONS_HADDOCK prune #-}
 module Control.Effects (
 
   -- * Running effects
@@ -13,15 +14,39 @@ module Control.Effects (
   , runIO
   , io
   -- * Effects machinery
-  , ContT
-  , Proxy
+  , Program
+  , Effect
   , AutoLift
 
 ) where
 
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Cont
-import Data.Functor.Identity
+data Program es a where
+  Pure :: a -> Program () a
+  IO :: IO a -> Program (IO ()) a
+  Effect :: ((a -> Program es e) -> Program es e) -> Program (e, es) a
+
+runEffect :: Program (e, es) a -> (a -> Program es e) -> Program es e
+runEffect (Effect f) = f
+
+lift :: Program es a -> Program (e, es) a
+lift m = Effect (bind m)
+
+bind :: Program es a -> (a -> Program es b) -> Program es b
+bind (Pure a) f = f a
+bind (IO m) f = IO $ m >>= (runIO . f)
+bind (Effect m) f = Effect $ \k -> m (\a -> runEffect (f a) k)
+
+instance Monad (Program ()) where
+  return = Pure
+  (>>=) = bind
+
+instance Monad (Program (IO ())) where
+  return = IO . return
+  (>>=) = bind
+
+instance Monad (Program (e, es)) where
+  return a = Effect $ \k -> k a
+  (>>=) = bind
 
 -- $rundoc
 -- Here's an example how to use the state effect from 'Control.Effects.State'.
@@ -35,12 +60,12 @@ import Data.Functor.Identity
 
 -- | @with@ takes a handler and creates a new @Proxy@ (effect identifier).
 --   The @Proxy@ is passed on to a function which can use it to do operations with it.
-with :: Monad m => Handler e r m a -> (Proxy (ContT e m) -> ContT e m a) -> m r
-with h f = runContT (f Proxy) (ret h) >>= fin h
+with :: Handler (e, es) r a -> (Effect (e, es) -> Program (e, es) a) -> Program es r
+with h f = runEffect (f Proxy) (ret h) `bind` fin h
 
 -- | Unwrap the result of the top-level effect.
-run :: Identity a -> a
-run = runIdentity
+run :: Program () a -> a
+run (Pure a) = a
 
 
 -- $defdoc
@@ -59,46 +84,47 @@ run = runIdentity
 --   The @ret@ field provides a function to lift pure values into the effect.
 --   The @fin@ field provides a function to extract a final value of type @r@ from the effect.
 --   The parameter @m@ should narmally be left polymorphic, it's the monad that handles the other effects.
-data Handler e r m a = Handler
-  { ret :: a -> m e
-  , fin :: e -> m r
-  }
+data Handler es r a where 
+  Handler :: { ret :: a -> Program es e, fin :: e -> Program es r } -> Handler (e, es) r a
 
 -- | Define an operation, which is autolifted so it can be used inside other effects.
-operation :: forall c m n a e. (c ~ ContT e m, AutoLift c n) => Proxy c -> ((a -> m e) -> m e) -> n a
-operation p f = autolift p (Proxy :: Proxy n) (ContT f)
+operation :: (AutoLift (e, es) ds) => Effect (e, es) -> ((a -> Program es e) -> Program es e) -> Program ds a
+operation p f = operation' p f
+  where
+    operation' :: forall e es ds a. (AutoLift (e, es) ds) => Effect (e, es) -> ((a -> Program es e) -> Program es e) -> Program ds a
+    operation' p f = autolift p (Proxy :: Effect ds) (Effect f)
 
 
 -- | Variant of 'run' that allows I/O effects. (Just the identity function, but it helps the type checker.)
-runIO :: IO () -> IO ()
-runIO = id
+runIO :: Program (IO ()) a -> IO a
+runIO (IO m) = m
 
 -- | Convert an 'IO' action to an I/O effect operation.
-io :: AutoLift IO n => IO a -> n a
-io m = autolift (Proxy :: Proxy IO) (Proxy :: Proxy n) m
+io :: AutoLift (IO ()) ds => IO a -> Program ds a
+io m = autolift (Proxy :: Effect (IO ())) (Proxy :: Effect ds) (IO m)
 
 
-data Proxy (m :: * -> *) = Proxy
+data Effect es = Proxy
 
 class AutoLift' m1 m2 n1 n2 where
-  autolift' :: Proxy n1 -> Proxy n2 -> m1 a -> m2 a
+  autolift' :: Effect n1 -> Effect n2 -> Program m1 a -> Program m2 a
 
-instance (m1 ~ m2) => AutoLift' m1 m2 IO IO where
+instance (m1 ~ m2) => AutoLift' m1 m2 (IO ()) (IO ()) where
   autolift' Proxy Proxy = id
-instance (m1 ~ m2) => AutoLift' m1 m2 Identity Identity where
+instance (m1 ~ m2) => AutoLift' m1 m2 () () where
   autolift' Proxy Proxy = id
 
-pre :: Proxy (ContT r m) -> Proxy m
+pre :: Effect (e, es) -> Effect es
 pre Proxy = Proxy
-instance (AutoLift' m1 m2 IO n, Monad m2) => AutoLift' m1 (ContT r m2) IO (ContT s n) where
+instance (AutoLift' m1 m2 (IO ()) n) => AutoLift' m1 (r, m2) (IO ()) (s, n) where
   autolift' p1 p2 = lift . autolift' p1 (pre p2)
-instance (AutoLift' m1 m2 Identity n, Monad m2) => AutoLift' m1 (ContT r m2) Identity (ContT s n) where
+instance (AutoLift' m1 m2 () n) => AutoLift' m1 (r, m2) () (s, n) where
   autolift' p1 p2 = lift . autolift' p1 (pre p2)
 
-instance (AutoLift' m1 m2 n1 n2) => AutoLift' m1 m2 (ContT r1 n1) (ContT r2 n2) where
+instance (AutoLift' m1 m2 n1 n2) => AutoLift' m1 m2 (r1, n1) (r2, n2) where
   autolift' p1 p2 = autolift' (pre p1) (pre p2)
 
 class AutoLift m1 m2 where
-  autolift :: Proxy m1 -> Proxy m2 -> m1 a -> m2 a
+  autolift :: Effect m1 -> Effect m2 -> Program m1 a -> Program m2 a
 instance AutoLift' m1 m2 m1 m2 => AutoLift m1 m2 where
   autolift = autolift'
