@@ -4,8 +4,7 @@ module Control.Effects.Set where
 import Control.Effects
 import qualified Data.Set as Set
 
-choose :: (c ~ ContT (Set.Set r) m, AutoLift c n, Monad m, Ord r) 
-       => Proxy c -> [a] -> n a
+choose :: (AutoLift (Set.Set r) m n, Ord r) => Effect (Set.Set r) m -> [a] -> n a
 choose p as = operation p $ \k -> do
   sets <- mapM k as
   return $ Set.unions sets
