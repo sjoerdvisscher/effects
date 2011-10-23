@@ -1,13 +1,12 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, FlexibleContexts, FlexibleInstances #-}
 module Control.Effects.Cont where
 
 import Control.Effects
 
-shift :: (c ~ ContT r m, AutoLift c n, Monad m) => Proxy c -> ((m a -> m r) -> m r) -> n a
-shift p c = operation p $ \k -> c (>>= k)
+data ContEff e (m :: * -> *) = Reset
+instance Monad m => Effect ContEff a a m a where
+  ret Reset = return
+  fin Reset = return
 
-reset :: Monad m => Handler a a m a
-reset = Handler
-  { ret = return
-  , fin = return
-  }
+shift :: (AutoLift (ContT r m) n, Monad m) => ContEff r m -> ((m a -> m r) -> m r) -> n a
+shift p c = operation p $ \k -> c (>>= k)

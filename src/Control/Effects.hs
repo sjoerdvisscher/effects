@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, ScopedTypeVariables, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, TypeFamilies, ScopedTypeVariables, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
 module Control.Effects (
 
   -- * Running effects
@@ -7,7 +7,7 @@ module Control.Effects (
   , run
   -- * Defining effects  
   -- $defdoc
-  , Handler(..)
+  , Effect(..)
   , operation
   -- * I/O
   , runIO
@@ -35,8 +35,8 @@ import Data.Functor.Identity
 
 -- | @with@ takes a handler and creates a new @Proxy@ (effect identifier).
 --   The @Proxy@ is passed on to a function which can use it to do operations with it.
-with :: Monad m => Handler e r m a -> (Proxy (ContT e m) -> ContT e m a) -> m r
-with h f = runContT (f Proxy) (ret h) >>= fin h
+with :: Effect p e r m a => p e m -> (p e m -> ContT e m a) -> m r
+with p f = runContT (f p) (ret p) >>= fin p
 
 -- | Unwrap the result of the top-level effect.
 run :: Identity a -> a
@@ -59,14 +59,13 @@ run = runIdentity
 --   The @ret@ field provides a function to lift pure values into the effect.
 --   The @fin@ field provides a function to extract a final value of type @r@ from the effect.
 --   The parameter @m@ should narmally be left polymorphic, it's the monad that handles the other effects.
-data Handler e r m a = Handler
-  { ret :: a -> m e
-  , fin :: e -> m r
-  }
+class Monad m => Effect p e r m a | p e m -> r a where
+  ret :: p e m -> a -> m e
+  fin :: p e m -> e -> m r
 
 -- | Define an operation, which is autolifted so it can be used inside other effects.
-operation :: forall c m n a e. (c ~ ContT e m, AutoLift c n) => Proxy c -> ((a -> m e) -> m e) -> n a
-operation p f = autolift p (Proxy :: Proxy n) (ContT f)
+operation :: forall p m n a e. (AutoLift (ContT e m) n) => p e m -> ((a -> m e) -> m e) -> n a
+operation _ f = autolift (Proxy :: Proxy (ContT e m)) (Proxy :: Proxy n) (ContT f)
 
 
 -- | Variant of 'run' that allows I/O effects. (Just the identity function, but it helps the type checker.)
