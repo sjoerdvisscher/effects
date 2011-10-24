@@ -6,7 +6,7 @@ import Control.Effects.Either
 import Control.Effects.Error
 import Control.Effects.State
 import Control.Effects.Writer
-import Control.Effects.Set
+import Control.Effects.NonDet
 
 import qualified Data.Set as Set
 

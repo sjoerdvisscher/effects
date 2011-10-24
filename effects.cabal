@@ -27,7 +27,7 @@ Library
     Control.Effects.Cont
     Control.Effects.Either
     Control.Effects.Error
-    Control.Effects.Set
+    Control.Effects.NonDet
     Control.Effects.State
     Control.Effects.Writer
     
