@@ -66,11 +66,7 @@ data Handler e r m a = Handler
 
 -- | Define an operation, which is autolifted so it can be used inside other effects.
 operation :: AutoLift e m n => Effect e m -> ((a -> m e) -> m e) -> n a
-operation p f = operation' p f 
-  where
-    -- Workaround to hide the forall from Haddock
-    operation' :: forall m n a e. AutoLift e m n => Effect e m -> ((a -> m e) -> m e) -> n a
-    operation' _ f = autolift (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy n) (ContT f)
+operation _ f = autolift (ContT f)
 
 
 -- | Variant of 'run' that allows I/O effects. (Just the identity function, but it helps the type checker.)
@@ -110,6 +106,6 @@ instance (AutoLiftInternal m1 m2 n1 n2) => AutoLiftInternal m1 m2 (ContT r1 n1) 
 
 -- | @AutoLift e m n@ lifts an effect @e@ layered on top of monad @m@ to the monad @n@.
 class Monad m => AutoLift e m n where
-  autolift :: Proxy (Layer e m) -> Proxy n -> Layer e m a -> n a
+  autolift :: Layer e m a -> n a
 instance (Monad m, AutoLiftInternal (Layer e m) n (Layer e m) n) => AutoLift e m n where
-  autolift = autolift'
+  autolift = autolift' (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy n)
