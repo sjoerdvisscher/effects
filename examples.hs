@@ -9,6 +9,8 @@ import Control.Effects.Writer
 import Control.Effects.NonDet
 
 import qualified Data.Set as Set
+import Control.Newtype
+import Data.Monoid
 
 
 testIO :: IO ()
@@ -49,7 +51,16 @@ testSet = run $
     y <- choose s [1, 2]
     z <- choose s [1, 2]
     return $ x * x - y * z * x + z * z * z - y * y * x
-  
+
+testAccumulate :: Bool
+testAccumulate = run $
+  with (accumulate Any) $ \s -> do
+    x <- choose s [1, 2]
+    y <- choose s [1, 2]
+    z <- choose s [1, 2]
+    return $ x * x - y * z * x + z * z * z - y * y * x == 0
+
+
 
 testError :: IO ()
 testError = runIO $ do
