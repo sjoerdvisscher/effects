@@ -44,17 +44,19 @@ run = runIdentity
 
 
 -- $defdoc
--- Here's and example how to define the state effect from 'Control.Effects.State'.
+-- Here's and example how to define the state effect from 'Control.Effects.Writer'.
 --
--- > ref :: Monad m => s -> Handler (s -> m a) a m a
--- > ref s_init = Handler
--- >   { ret = return . return . return
--- >   , fin = \f -> f s_init
+-- > writer :: (Monad m, Monoid w) => Handler (w, a) (w, a) m a
+-- > writer = Handler
+-- >   { ret = \a -> return (mempty, a)
+-- >   , fin = return
 -- >   }
--- >
--- > get p   = operation p $ \k -> return $ \s -> do r <- k s; r s
--- > put p s = operation p $ \k -> return $ \_ -> do r <- k (); r s
- 
+-- > 
+-- > tell :: (AutoLift (w, r) m n, Monoid w) => Effect (w, r) m -> w -> n ()
+-- > tell p v = operation p $ \k -> do
+-- >   (w, r) <- k ()
+-- >   return (mappend v w, r)
+
 -- | A @Handler e r m a@ is a handler of effects with type @e@. 
 --   The @ret@ field provides a function to lift pure values into the effect.
 --   The @fin@ field provides a function to extract a final value of type @r@ from the effect.
