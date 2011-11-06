@@ -61,6 +61,18 @@ testAccumulate = run $
     return $ x * x - y * z * x + z * z * z - y * y * x == 0
 
 
+testDfs :: [Int] -> [(Int, Int, Int)]
+testDfs = run . with (dfs return) . triples
+
+testBfs :: [Int] -> [(Int, Int, Int)]
+testBfs = run . with (bfs return) . triples
+
+triples range s = do
+  x <- choose s range
+  y <- choose s range
+  z <- choose s range
+  if x*x + y*y == z*z then return (x,y,z) else choose s []
+
 
 testError :: IO ()
 testError = runIO $ do
