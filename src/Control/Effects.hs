@@ -107,7 +107,11 @@ instance (AutoLiftInternal m1 m2 n1 n2) => AutoLiftInternal m1 m2 (ContT r1 n1) 
   autolift' p1 p2 = autolift' (pre p1) (pre p2)
 
 -- | @AutoLift e m n@ lifts an effect @e@ layered on top of monad @m@ to the monad @n@.
-class Monad m => AutoLift e m n where
+class (Monad m, Monad n) => AutoLift e m n where
   autolift :: Layer e m a -> n a
-instance (Monad m, AutoLiftInternal (Layer e m) n (Layer e m) n) => AutoLift e m n where
-  autolift = autolift' (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy n)
+instance (Monad m, AutoLiftInternal (Layer e m) IO (Layer e m) IO) => AutoLift e m IO where
+  autolift = autolift' (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy IO)
+instance (Monad m, AutoLiftInternal (Layer e m) Identity (Layer e m) Identity) => AutoLift e m Identity where
+  autolift = autolift' (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy Identity)
+instance (Monad m, Monad n, AutoLiftInternal (Layer e m) (Layer e1 n) (Layer e m) (Layer e1 n)) => AutoLift e m (Layer e1 n) where
+  autolift = autolift' (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy (Layer e1 n))
