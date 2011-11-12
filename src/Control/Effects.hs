@@ -21,6 +21,8 @@ module Control.Effects (
 
 ) where
 
+import Control.Applicative
+
 -- $rundoc
 -- Here's an example how to use the state effect from 'Control.Effects.State'.
 --
@@ -65,18 +67,44 @@ data Handler e r m a = Handler
   }
 
 -- | @Layer e m@ is a monad that adds an effect @e@ to the underlying monad @m@.
---   It is a type synonym for the continuation monad transformer.
+--   (It is the continuation monad transformer with a friendlier name.)
 newtype Layer e m a = Layer { runLayer :: (a -> m e) -> m e }
+
+instance Functor (Layer r m) where
+  fmap f m = Layer $ \k -> runLayer m (k . f)
+
+instance Applicative (Layer r m) where
+  pure a   = Layer $ \k -> k a
+  m <*> v  = Layer $ \k -> runLayer m (\f -> runLayer v (k . f))
+
 instance Monad (Layer e m) where
-    return a = Layer $ \k -> k a
-    m >>= f  = Layer $ \k -> runLayer m (\a -> runLayer (f a) k)
+  return a = Layer $ \k -> k a
+  m >>= f  = Layer $ \k -> runLayer m (\a -> runLayer (f a) k)
+
 
 newtype Pure a = Pure { runPure :: a }
+
+instance Functor Pure where
+  fmap f (Pure a) = Pure (f a)
+
+instance Applicative Pure where
+  pure = Pure
+  Pure f <*> Pure a = Pure (f a)  
+  
 instance Monad Pure where
   return = Pure
   Pure a >>= f = f a
 
+
 newtype Base m a = Base { runBase :: m a }
+
+instance Functor m => Functor (Base m) where
+  fmap f (Base m) = Base (fmap f m)
+
+instance Applicative m => Applicative (Base m) where
+  pure = Base . pure
+  Base m <*> Base v = Base (m <*> v)
+  
 instance Monad m => Monad (Base m) where
   return = Base . return
   Base m >>= f = Base $ m >>= runBase . f
