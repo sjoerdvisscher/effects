@@ -10,18 +10,16 @@ module Control.Effects (
   , Handler(..)
   , operation
   -- * I/O
-  , runIO
-  , io
+  , Base(..)
+  , base
   -- * Effects machinery
   , Layer
+  , Pure
   , Effect
   , AutoLift
+  , AutoLiftBase
 
 ) where
-
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Cont
-import Data.Functor.Identity
 
 -- $rundoc
 -- Here's an example how to use the state effect from 'Control.Effects.State'.
@@ -36,11 +34,11 @@ import Data.Functor.Identity
 -- | @with@ takes a handler and creates a new effect instance.
 --   The @Effect@ is passed on to a function which can use it to do operations with it.
 with :: Monad m => Handler e r m a -> (Effect e m -> Layer e m a) -> m r
-with h f = runContT (f Effect) (ret h) >>= fin h
+with h f = runLayer (f Effect) (ret h) >>= fin h
 
 -- | Unwrap the result of the top-level effect.
-run :: Identity a -> a
-run = runIdentity
+run :: Base Pure a -> a
+run = runPure . runBase
 
 
 -- $defdoc
@@ -66,52 +64,56 @@ data Handler e r m a = Handler
   , fin :: e -> m r
   }
 
--- | Define an operation, which is autolifted so it can be used inside other effects.
-operation :: AutoLift e m n => Effect e m -> ((a -> m e) -> m e) -> n a
-operation _ f = autolift (ContT f)
-
-
--- | Variant of 'run' that allows I/O effects. (Just the identity function, but it helps the type checker.)
-runIO :: IO () -> IO ()
-runIO = id
-
--- | Convert an 'IO' action to an I/O effect operation.
-io :: forall n a. AutoLiftInternal IO n IO n => IO a -> n a
-io m = autolift' (Proxy :: Proxy IO) (Proxy :: Proxy n) m
-
 -- | @Layer e m@ is a monad that adds an effect @e@ to the underlying monad @m@.
 --   It is a type synonym for the continuation monad transformer.
-type Layer e m = ContT e m
+newtype Layer e m a = Layer { runLayer :: (a -> m e) -> m e }
+instance Monad (Layer e m) where
+    return a = Layer $ \k -> k a
+    m >>= f  = Layer $ \k -> runLayer m (\a -> runLayer (f a) k)
+
+newtype Pure a = Pure { runPure :: a }
+instance Monad Pure where
+  return = Pure
+  Pure a >>= f = f a
+
+newtype Base m a = Base { runBase :: m a }
+instance Monad m => Monad (Base m) where
+  return = Base . return
+  Base m >>= f = Base $ m >>= runBase . f
 
 -- | @Effect e m@ is a proxy for the type checker to be able to work with multiple effects at the same time.
 data Effect e (m :: * -> *) = Effect
 
+
+class (Monad m, Monad n) => AutoLift e m n where
+  operation :: Effect e m -> ((a -> m e) -> m e) -> n a
+
+instance (Monad m, Monad n, AutoLiftInternal (Layer e m) (Base    n) (Layer e m) (Base    n)) => AutoLift e m (Base    n) where
+  operation _ f = autolift (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy (Base    n)) (Layer f)
+instance (Monad m, Monad n, AutoLiftInternal (Layer e m) (Layer d n) (Layer e m) (Layer d n)) => AutoLift e m (Layer d n) where
+  operation _ f = autolift (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy (Layer d n)) (Layer f)
+
+
+class (Monad m, Monad n) => AutoLiftBase m n where
+  base :: m a -> n a
+
+instance (Monad m, Monad n, AutoLiftInternal (Base    m) (Base    n) (Base    m) (Base    n)) => AutoLiftBase m (Base    n) where
+  base m        = autolift (Proxy :: Proxy (Base    m)) (Proxy :: Proxy (Base    n)) (Base m)
+instance (Monad m, Monad n, AutoLiftInternal (Base    m) (Layer e n) (Base    m) (Layer e n)) => AutoLiftBase m (Layer e n) where
+  base m        = autolift (Proxy :: Proxy (Base    m)) (Proxy :: Proxy (Layer e n)) (Base m)
+
+
 data Proxy (m :: * -> *) = Proxy
 
-class AutoLiftInternal m1 m2 n1 n2 where
-  autolift' :: Proxy n1 -> Proxy n2 -> m1 a -> m2 a
+class (Monad m1, Monad m2) =>  AutoLiftInternal m1 m2 n1 n2 where
+  autolift :: Proxy n1 -> Proxy n2 -> m1 a -> m2 a
 
-instance (m1 ~ m2) => AutoLiftInternal m1 m2 IO IO where
-  autolift' Proxy Proxy = id
-instance (m1 ~ m2) => AutoLiftInternal m1 m2 Identity Identity where
-  autolift' Proxy Proxy = id
-
-pre :: Proxy (ContT r m) -> Proxy m
+pre :: Proxy (Layer r m) -> Proxy m
 pre Proxy = Proxy
-instance (AutoLiftInternal m1 m2 IO n, Monad m2) => AutoLiftInternal m1 (ContT r m2) IO (ContT s n) where
-  autolift' p1 p2 = lift . autolift' p1 (pre p2)
-instance (AutoLiftInternal m1 m2 Identity n, Monad m2) => AutoLiftInternal m1 (ContT r m2) Identity (ContT s n) where
-  autolift' p1 p2 = lift . autolift' p1 (pre p2)
 
-instance (AutoLiftInternal m1 m2 n1 n2) => AutoLiftInternal m1 m2 (ContT r1 n1) (ContT r2 n2) where
-  autolift' p1 p2 = autolift' (pre p1) (pre p2)
-
--- | @AutoLift e m n@ lifts an effect @e@ layered on top of monad @m@ to the monad @n@.
-class (Monad m, Monad n) => AutoLift e m n where
-  autolift :: Layer e m a -> n a
-instance (Monad m, AutoLiftInternal (Layer e m) IO (Layer e m) IO) => AutoLift e m IO where
-  autolift = autolift' (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy IO)
-instance (Monad m, AutoLiftInternal (Layer e m) Identity (Layer e m) Identity) => AutoLift e m Identity where
-  autolift = autolift' (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy Identity)
-instance (Monad m, Monad n, AutoLiftInternal (Layer e m) (Layer e1 n) (Layer e m) (Layer e1 n)) => AutoLift e m (Layer e1 n) where
-  autolift = autolift' (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy (Layer e1 n))
+instance (m1 ~ m2, Monad m1, Monad m2)         => AutoLiftInternal m1          m2  (Base    n)  (Base    n)  where
+  autolift Proxy Proxy = id
+instance (AutoLiftInternal m1 m2 (Base n1) n2) => AutoLiftInternal m1 (Layer r m2) (Base    n1) (Layer s n2) where
+  autolift p1 p2 = Layer . (>>=) . autolift p1 (pre p2)
+instance (AutoLiftInternal m1 m2       n1  n2) => AutoLiftInternal m1          m2  (Layer r n1) (Layer s n2) where
+  autolift p1 p2 = autolift (pre p1) (pre p2)

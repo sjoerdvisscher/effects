@@ -9,15 +9,15 @@ import Control.Effects.Writer
 import Control.Effects.NonDet
 
 import qualified Data.Set as Set
-import Control.Newtype
 import Data.Monoid
+import Data.Foldable
 
 
 testIO :: IO ()
-testIO = runIO $ do
-  io $ putStrLn "What's your name?"
-  name <- io getLine
-  io $ putStrLn $ "Hello, " ++ name
+testIO = runBase $ do
+  base $ putStrLn "What's your name?"
+  name <- base getLine
+  base $ putStrLn $ "Hello, " ++ name
 
 
 testRef :: (Int, Int)
@@ -67,6 +67,7 @@ testDfs = run . with (dfs return) . triples
 testBfs :: [Int] -> [(Int, Int, Int)]
 testBfs = run . with (bfs return) . triples
 
+triples :: (Num a, Foldable f, Monoid e, AutoLift e m n) => f a -> Effect e m -> n (a, a, a)
 triples range s = do
   x <- choose s range
   y <- choose s range
@@ -75,19 +76,19 @@ triples range s = do
 
 
 testError :: IO ()
-testError = runIO $ do
-  with (catchError (\e -> io $ putStrLn ("Error: " ++ e))) $ \c -> do
-    io $ putStrLn "before"
+testError = runBase $ do
+  with (catchError (\e -> base $ putStrLn ("Error: " ++ e))) $ \c -> do
+    base $ putStrLn "before"
     throwError c "123"
-    io $ putStrLn "after"
+    base $ putStrLn "after"
   
 
 testEither :: IO ()
-testEither = runIO $ do
-  with (catchEither (\e -> io $ putStrLn ("Error: " ++ e))) $ \c -> do
-    io $ putStrLn "before"
+testEither = runBase $ do
+  with (catchEither (\e -> base $ putStrLn ("Error: " ++ e))) $ \c -> do
+    base $ putStrLn "before"
     throwEither c "123"
-    io $ putStrLn "after"
+    base $ putStrLn "after"
 
 
 testReset1 :: Int
@@ -97,11 +98,11 @@ testReset1 = run $ do
     return $ x * 2 + 1
 
 testReset2 :: IO ()
-testReset2 = runIO $ do
+testReset2 = runBase $ do
   r <- with reset $ \promptA -> do
-    io $ putStrLn "Batman"
+    base $ putStrLn "Batman"
     with reset $ \promptB -> do
       shift promptB $ \k -> k (k (shift promptA $ \l -> l (l (return ()))))
-      io $ putStrLn "Robin"
-    io $ putStrLn "Cat woman"
-  io $ print r
+      base $ putStrLn "Robin"
+    base $ putStrLn "Cat woman"
+  base $ print r
