@@ -2,7 +2,10 @@ name:                effects
 version:             0.2
 synopsis:            Computational Effects
 
-description:         An alternative to Monad Transformers.
+description:         Control.Effects is a library for programming with effects, like in the the Eff language by 
+                     Andrej Bauer and Matija Pretnar. Effects can be used instead of monad transformers.
+                     .
+                     See the home page for some example code.
 
 category:            Control, Monads
 license:             BSD3

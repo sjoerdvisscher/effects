@@ -19,6 +19,11 @@ testIO = runBase $ do
   name <- base getLine
   base $ putStrLn $ "Hello, " ++ name
 
+testRefIO :: IO ()
+testRefIO = runBase $ do
+  with (ref 5) $ \x -> do
+    val <- get x
+    base $ print val
 
 testRef :: (Int, Int)
 testRef = run $ do
