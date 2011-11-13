@@ -10,6 +10,7 @@ import Control.Effects.NonDet
 
 import qualified Data.Set as Set
 import Data.Monoid
+import Control.Applicative
 
 
 testIO :: IO ()
@@ -21,16 +22,12 @@ testIO = runBase $ do
 
 testRef :: (Int, Int)
 testRef = run $ do
-  with (ref 10) $ \u -> do
-    with (ref 20) $ \v -> do
-      w <- get u
-      put u (w + 5)
-      x <- get v
-      put v (x + 1)
-      y <- get u
-      z <- get v
-      return (y, z)
-
+  with (ref 5) $ \x -> do
+    with (ref 10) $ \y -> do
+      x =: (+) <$> get x <*> get y
+      y =: (+) <$> get x <*> get y
+      (,) <$> get x <*> get y
+      
 
 testWriter :: (String, (String, Int))
 testWriter = run $ do

@@ -9,7 +9,11 @@ get :: AutoLift (State s m a) m n => Effect (State s m a) m -> n s
 get p = operation p $ \k -> return $ \s -> do r <- k s; r s
 
 put :: AutoLift (State s m a) m n => Effect (State s m a) m -> s -> n ()
-put p s' = operation p $ \k -> return $ \_ -> do r <- k (); r s'
+put p s = operation p $ \k -> return $ \_ -> do r <- k (); r s
+
+infixr 3 =:
+(=:) :: AutoLift (State s m a) m n => Effect (State s m a) m -> n s -> n ()
+p =: m = m >>= put p
 
 modify :: AutoLift (State s m a) m n => Effect (State s m a) m -> (s -> s) -> n ()
 modify p f = do
