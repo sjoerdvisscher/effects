@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, ScopedTypeVariables, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, KindSignatures, ScopedTypeVariables, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
 module Control.Effects (
 
   -- * Running effects
@@ -139,7 +139,7 @@ class (Monad m1, Monad m2) =>  AutoLiftInternal m1 m2 n1 n2 where
 pre :: Proxy (Layer r m) -> Proxy m
 pre Proxy = Proxy
 
-instance (m1 ~ m2, Monad m1, Monad m2)         => AutoLiftInternal m1          m2  (Base    n)  (Base    n)  where
+instance (Monad m)                             => AutoLiftInternal m           m   (Base    n)  (Base    n)  where
   autolift Proxy Proxy = id
 instance (AutoLiftInternal m1 m2 (Base n1) n2) => AutoLiftInternal m1 (Layer r m2) (Base    n1) (Layer s n2) where
   autolift p1 p2 = Layer . (>>=) . autolift p1 (pre p2)

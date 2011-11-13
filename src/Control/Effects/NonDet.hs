@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
 module Control.Effects.NonDet (choose, dfs, set, alternatives, accumulate, bfs) where
 
 import Control.Effects

@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Control.Effects.Either where
 
 import Control.Effects

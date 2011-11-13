@@ -10,7 +10,6 @@ import Control.Effects.NonDet
 
 import qualified Data.Set as Set
 import Data.Monoid
-import Data.Foldable
 
 
 testIO :: IO ()
@@ -67,7 +66,7 @@ testDfs = run . with (dfs return) . triples
 testBfs :: [Int] -> [(Int, Int, Int)]
 testBfs = run . with (bfs return) . triples
 
-triples :: (Num a, Foldable f, Monoid e, AutoLift e m n) => f a -> Effect e m -> n (a, a, a)
+triples :: (Num a, Monoid e, AutoLift e m n) => [a] -> Effect e m -> n (a, a, a)
 triples range s = do
   x <- choose s range
   y <- choose s range
