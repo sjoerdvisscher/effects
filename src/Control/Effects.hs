@@ -160,33 +160,33 @@ instance Monad m => Monad (Base m) where
 data Effect e (m :: * -> *) = Effect
 
 
-class (Monad m, Monad n) => AutoLift e m n where
+class (Applicative m, Applicative n, Monad m, Monad n) => AutoLift e m n where
   operation' :: Effect e m -> ((a -> m e) -> m e) -> n a
 
-instance (Monad m, Monad n, AutoLiftInternal (Layer e m) (Base    n) (Layer e m) (Base    n)) => AutoLift e m (Base    n) where
+instance (Applicative m, Applicative n, Monad m, Monad n, AutoLiftInternal (Layer e m) (Base    n) (Layer e m) (Base    n)) => AutoLift e m (Base    n) where
   operation' _ f = autolift (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy (Base    n)) (Layer f)
-instance (Monad m, Monad n, AutoLiftInternal (Layer e m) (Layer d n) (Layer e m) (Layer d n)) => AutoLift e m (Layer d n) where
+instance (Applicative m, Applicative n, Monad m, Monad n, AutoLiftInternal (Layer e m) (Layer d n) (Layer e m) (Layer d n)) => AutoLift e m (Layer d n) where
   operation' _ f = autolift (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy (Layer d n)) (Layer f)
 
 
-class (Monad m, Monad n) => AutoLiftBase m n where
+class (Applicative m, Applicative n, Monad m, Monad n) => AutoLiftBase m n where
   base' :: m a -> n a
 
-instance (Monad m, Monad n, AutoLiftInternal (Base    m) (Base    n) (Base    m) (Base    n)) => AutoLiftBase m (Base    n) where
+instance (Applicative m, Applicative n, Monad m, Monad n, AutoLiftInternal (Base    m) (Base    n) (Base    m) (Base    n)) => AutoLiftBase m (Base    n) where
   base' m        = autolift (Proxy :: Proxy (Base    m)) (Proxy :: Proxy (Base    n)) (Base m)
-instance (Monad m, Monad n, AutoLiftInternal (Base    m) (Layer e n) (Base    m) (Layer e n)) => AutoLiftBase m (Layer e n) where
+instance (Applicative m, Applicative n, Monad m, Monad n, AutoLiftInternal (Base    m) (Layer e n) (Base    m) (Layer e n)) => AutoLiftBase m (Layer e n) where
   base' m        = autolift (Proxy :: Proxy (Base    m)) (Proxy :: Proxy (Layer e n)) (Base m)
 
 
 data Proxy (m :: * -> *) = Proxy
 
-class (Monad m1, Monad m2) =>  AutoLiftInternal m1 m2 n1 n2 where
+class (Applicative m1, Applicative m2, Monad m1, Monad m2) =>  AutoLiftInternal m1 m2 n1 n2 where
   autolift :: Proxy n1 -> Proxy n2 -> m1 a -> m2 a
 
 pre :: Proxy (Layer r m) -> Proxy m
 pre Proxy = Proxy
 
-instance (Monad m)                             => AutoLiftInternal m           m   (Base    n)  (Base    n)  where
+instance (Applicative m, Monad m)              => AutoLiftInternal m           m   (Base    n)  (Base    n)  where
   autolift Proxy Proxy = id
 instance (AutoLiftInternal m1 m2 (Base n1) n2) => AutoLiftInternal m1 (Layer r m2) (Base    n1) (Layer s n2) where
   autolift p1 p2 = Layer . (>>=) . autolift p1 (pre p2)

@@ -7,12 +7,11 @@ import Prelude hiding (foldr)
 import Data.Foldable
 import Data.Monoid
 import Control.Applicative
-import Control.Monad
 import Control.Newtype
 
-instance (Monad m, Monoid r) => Monoid (WrappedMonad m r) where
-  mempty                              = WrapMonad $ return mempty
-  mappend (WrapMonad a) (WrapMonad b) = WrapMonad $ liftM2 mappend a b
+instance (Applicative m, Monoid r) => Monoid (WrappedMonad m r) where
+  mempty                              = WrapMonad $ pure mempty
+  mappend (WrapMonad a) (WrapMonad b) = WrapMonad $ liftA2 mappend a b
 
 newtype WrappedAlt f a = WrapAlt (f a)
 instance Newtype (WrappedAlt m a) (m a) where
@@ -47,7 +46,7 @@ accumulate f = Handler
   , fin = return . unpack
   }
 
-newtype BFS r = BFS { unBFS :: Int -> Maybe r }
+newtype BFS r = BFS (Int -> Maybe r)
 instance Monoid r => Monoid (BFS r) where
   mempty                = BFS $ \d -> if d == 0 then Just mempty else Nothing
   BFS f `mappend` BFS g = BFS $ \d -> if d == 0 then f d else f d `mappend` g (d - 1)
