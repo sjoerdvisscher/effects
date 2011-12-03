@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
-module Control.Effects.NonDet (choose, dfs, set, alternatives, accumulate, bfs) where
+module Control.Effects.NonDet (choose, guard, dfs, set, alternatives, accumulate, bfs) where
 
 import Control.Effects
 import qualified Data.Set as Set
@@ -24,6 +24,10 @@ instance Alternative f => Monoid (WrappedAlt f a) where
 
 choose :: (AutoLift r m n, Monoid r, Foldable f) => Effect r m -> f a -> n a
 choose p as = operation p $ \k -> ala' WrapMonad foldMap k as
+
+guard :: (Monoid r, AutoLift r m n) => Effect r m -> Bool -> n ()
+guard _ True = return ()
+guard p False = choose p []
 
 dfs :: (Monad m, Monoid r) => (a -> r) -> Handler r r m a
 dfs f = Handler

@@ -73,7 +73,8 @@ triples range s = do
   x <- choose s range
   y <- choose s range
   z <- choose s range
-  if x*x + y*y == z*z then return (x,y,z) else choose s []
+  guard s $ x*x + y*y == z*z
+  return (x,y,z)
 
 
 testError :: IO ()
