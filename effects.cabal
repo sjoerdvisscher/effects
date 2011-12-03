@@ -1,5 +1,5 @@
 name:                effects
-version:             0.2
+version:             0.2.1
 synopsis:            Computational Effects
 
 description:         Control.Effects is a library for programming with effects, like in the the Eff language by 

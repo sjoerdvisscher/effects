@@ -15,9 +15,9 @@ module Control.Effects (
   , base
   -- * Effects machinery
   -- $macdoc
-  , Layer
-  , Base
-  , Pure
+  , Layer(..)
+  , Base(..)
+  , Pure(..)
   , Effect
   , AutoLift
   , AutoLiftBase
