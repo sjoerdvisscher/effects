@@ -27,7 +27,7 @@ module Control.Effects (
 import Control.Applicative
 
 -- $rundoc
--- Here's an example how to use the state effect from 'Control.Effects.State'.
+-- Here's an example how to use the state effect from 'Control.Effects.State':
 --
 -- > example :: Int
 -- > example = run $ do
@@ -47,7 +47,7 @@ run (Base (Pure a)) = a
 
 
 -- $defdoc
--- Here's and example how to define the state effect from 'Control.Effects.Writer'.
+-- Here's and example how to define the state effect from 'Control.Effects.Writer':
 --
 -- > writer :: (Monad m, Monoid w) => Handler (w, a) (w, a) m a
 -- > writer = Handler
@@ -63,7 +63,7 @@ run (Base (Pure a)) = a
 -- | A @Handler e r m a@ is a handler of effects with type @e@. 
 --   The @ret@ field provides a function to lift pure values into the effect.
 --   The @fin@ field provides a function to extract a final value of type @r@ from the effect.
---   The parameter @m@ should narmally be left polymorphic, it's the monad that handles the other effects.
+--   The parameter @m@ should normally be left polymorphic, it's the monad that handles the other effects.
 data Handler e r m a = Handler
   { ret :: a -> m e
   , fin :: e -> m r
@@ -76,7 +76,7 @@ operation = operation'
 
 
 -- $basedoc
--- The effects are layered on top of a base monad. Here's an example how to use `IO` as a base monad.
+-- The effects are layered on top of a base monad. Here's an example how to use `IO` as a base monad:
 -- 
 -- > exampleIO :: IO ()
 -- > exampleIO = runBase $ do
