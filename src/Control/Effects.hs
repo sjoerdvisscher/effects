@@ -25,6 +25,8 @@ module Control.Effects (
 ) where
 
 import Control.Applicative
+import Control.Monad
+import Data.Monoid
 
 -- $rundoc
 -- Here's an example how to use the state effect from 'Control.Effects.State':
@@ -105,16 +107,24 @@ runBase (Base m) = m
 --   (It is the continuation monad transformer with a friendlier name.)
 newtype Layer e m a = Layer { runLayer :: (a -> m e) -> m e }
 
-instance Functor (Layer r m) where
+instance Functor (Layer e m) where
   fmap f m = Layer $ \k -> runLayer m (k . f)
 
-instance Applicative (Layer r m) where
+instance Applicative (Layer e m) where
   pure a   = Layer $ \k -> k a
   m <*> v  = Layer $ \k -> runLayer m (\f -> runLayer v (k . f))
+
+instance (Monoid e, Applicative m) => Alternative (Layer e m) where
+  empty = Layer $ \_ -> pure mempty
+  l <|> r = Layer $ \k -> mappend <$> runLayer l k <*> runLayer r k
 
 instance Monad (Layer e m) where
   return a = Layer $ \k -> k a
   m >>= f  = Layer $ \k -> runLayer m (\a -> runLayer (f a) k)
+
+instance (Monoid e, Applicative m) => MonadPlus (Layer e m) where
+  mzero = empty
+  mplus = (<|>)
 
 
 -- | @Pure@ is the identity monad and is used when no other base monad is needed.
