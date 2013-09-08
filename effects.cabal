@@ -36,6 +36,7 @@ Library
     Control.Effects.NonDet
     Control.Effects.State
     Control.Effects.Writer
+    Control.Effects.Parser
     
 source-repository head
   type:     git
