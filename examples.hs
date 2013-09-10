@@ -9,7 +9,7 @@ import Control.Effects.Writer
 import Control.Effects.NonDet
 import Control.Effects.Parser
 
-import Data.Char (isDigit)
+import Data.Char (isDigit, isSpace)
 import qualified Data.Set as Set
 import Data.Monoid
 import Control.Applicative
@@ -121,13 +121,14 @@ testParser1 = runBase $ do
           product = leftAssoc unary   [('*', (*)), ('/', div)]
           unary   = oneOf p [char '-' >> negate <$> unary, atom]
           atom    = oneOf p [number, char '(' *> expr <* char ')']
-          number  = read <$> digits
+          number  = read <$> digits <* spaces
           digits  = noBacktrack p $ parseMany1 p $ itemIf p isDigit
-          char ch = itemIf p (==ch)
+          spaces  = noBacktrack p $ parseMany  p $ itemIf p isSpace
+          char ch = itemIf p (==ch) <* spaces
           leftAssoc unit opPairs = do
-             let ops = map (\(ch, op) -> char ch >> unit >>= \b -> return (`op` b)) opPairs
+             let ops = map (\(ch, op) -> char ch >> flip op <$> unit) opPairs
              foldl (\a op -> op a) <$> unit <*> (parseMany p $ oneOf p $ ops)
-      in expr <* parseEnd p
+      in spaces *> expr <* parseEnd p
    case maybeResult of
       Nothing -> base $ putStrLn $ "Syntax error in expression"
       Just n  -> base $ putStrLn $ "Result: " ++ (show (n :: Integer))
