@@ -7,7 +7,9 @@ import Control.Effects.Error
 import Control.Effects.State
 import Control.Effects.Writer
 import Control.Effects.NonDet
+import Control.Effects.Parser
 
+import Data.Char (isDigit, isSpace)
 import qualified Data.Set as Set
 import Data.Monoid
 import Control.Applicative
@@ -108,3 +110,25 @@ testReset2 = runBase $ do
       base $ putStrLn "Robin"
     base $ putStrLn "Cat woman"
   base $ print r
+
+
+testParser1 :: IO ()
+testParser1 = runBase $ do
+   input <- base $ getLine
+   maybeResult <- with (parse input) $ \p ->
+      let expr    = sum
+          sum     = leftAssoc product [('+', (+)), ('-', (-))]
+          product = leftAssoc unary   [('*', (*)), ('/', div)]
+          unary   = oneOf p [char '-' >> negate <$> unary, atom]
+          atom    = oneOf p [number, char '(' *> expr <* char ')']
+          number  = read <$> digits <* spaces
+          digits  = noBacktrack p $ parseMany1 p $ itemIf p isDigit
+          spaces  = noBacktrack p $ parseMany  p $ itemIf p isSpace
+          char ch = itemIf p (==ch) <* spaces
+          leftAssoc unit opPairs = do
+             let ops = map (\(ch, op) -> char ch >> flip op <$> unit) opPairs
+             foldl (\a op -> op a) <$> unit <*> (parseMany p $ oneOf p $ ops)
+      in spaces *> expr <* parseEnd p
+   case maybeResult of
+      Nothing -> base $ putStrLn $ "Syntax error in expression"
+      Just n  -> base $ putStrLn $ "Result: " ++ (show (n :: Integer))
