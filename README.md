@@ -23,6 +23,7 @@ Here's an example how to use the state effect from `Control.Effects.State`.
 
 Every instance of an effect is given a name (`x` and `y` in this example), which makes is possible to easily mix several instances of the same effect.
 
-For more examples see [examples.hs](https://github.com/sjoerdvisscher/effects/blob/master/examples.hs).
+For more examples see [examples.hs](https://github.com/sjoerdvisscher/effects/blob/master/examples.hs). 
+Another good example is the implementation of a [parser](https://github.com/nybble41/effects-parser) by Jesse McDonald.
 
 [Eff]: http://math.andrej.com/category/programming/eff/?category_name=programming/eff
