@@ -1,8 +1,8 @@
 name:                effects
-version:             0.2.2
+version:             0.2.3
 synopsis:            Computational Effects
 
-description:         Control.Effects is a library for programming with effects, like in the the Eff language by 
+description:         Control.Effects is a library for programming with effects, like in the the Eff language by
                      Andrej Bauer and Matija Pretnar. Effects can be used instead of monad transformers.
                      .
                      See the home page for some example code.
@@ -24,11 +24,11 @@ Extra-Source-Files:
 
 Library
   HS-Source-Dirs:      src
-  build-depends:       base >= 3 && < 5, 
+  build-depends:       base >= 3 && < 5,
                        containers  >= 0.4 && < 0.6,
-                       newtype >= 0.2 && < 0.3,
+                       newtype-generics,
                        void
-  exposed-modules:     
+  exposed-modules:
     Control.Effects
     Control.Effects.Cont
     Control.Effects.Either
@@ -36,7 +36,7 @@ Library
     Control.Effects.NonDet
     Control.Effects.State
     Control.Effects.Writer
-    
+
 source-repository head
   type:     git
   location: git://github.com/sjoerdvisscher/effects.git

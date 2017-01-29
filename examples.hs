@@ -1,5 +1,3 @@
-module Main where
-
 import Control.Effects
 import Control.Effects.Cont
 import Control.Effects.Either
@@ -10,7 +8,6 @@ import Control.Effects.NonDet
 
 import qualified Data.Set as Set
 import Data.Monoid
-import Control.Applicative
 
 
 testIO :: IO ()
@@ -21,7 +18,7 @@ testIO = runBase $ do
 
 testRefIO :: IO ()
 testRefIO = runBase $ do
-  with (ref 5) $ \x -> do
+  with (ref (5::Int)) $ \x -> do
     val <- get x
     base $ print val
 
@@ -32,7 +29,7 @@ testRef = run $ do
       x =: (+) <$> get x <*> get y
       y =: (+) <$> get x <*> get y
       (,) <$> get x <*> get y
-      
+
 
 testWriter :: (String, (String, Int))
 testWriter = run $ do
@@ -59,7 +56,7 @@ testAccumulate = run $
     x <- choose s [1, 2]
     y <- choose s [1, 2]
     z <- choose s [1, 2]
-    return $ x * x - y * z * x + z * z * z - y * y * x == 0
+    return $ x * x - y * z * x + z * z * z - y * y * x == (0::Int)
 
 
 testDfs :: [Int] -> [(Int, Int, Int)]
@@ -81,15 +78,15 @@ testError :: IO ()
 testError = runBase $ do
   with (catchError (\e -> base $ putStrLn ("Error: " ++ e))) $ \c -> do
     base $ putStrLn "before"
-    throwError c "123"
+    _ <- throwError c "123"
     base $ putStrLn "after"
-  
+
 
 testEither :: IO ()
 testEither = runBase $ do
   with (catchEither (\e -> base $ putStrLn ("Error: " ++ e))) $ \c -> do
     base $ putStrLn "before"
-    throwEither c "123"
+    _ <- throwEither c "123"
     base $ putStrLn "after"
 
 

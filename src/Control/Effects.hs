@@ -5,7 +5,7 @@ module Control.Effects (
   -- $rundoc
     with
   , run
-  -- * Defining effects  
+  -- * Defining effects
   -- $defdoc
   , Handler(..)
   , operation
@@ -26,7 +26,6 @@ module Control.Effects (
 
 import Control.Applicative
 import Control.Monad
-import Data.Monoid
 
 -- $rundoc
 -- Here's an example how to use the state effect from 'Control.Effects.State':
@@ -56,13 +55,13 @@ run (Base (Pure a)) = a
 -- >   { ret = \a -> return (mempty, a)
 -- >   , fin = return
 -- >   }
--- > 
+-- >
 -- > tell :: (AutoLift (w, r) m n, Monoid w) => Effect (w, r) m -> w -> n ()
 -- > tell p v = operation p $ \k -> do
 -- >   (w, r) <- k ()
 -- >   return (mappend v w, r)
 
--- | A @Handler e r m a@ is a handler of effects with type @e@. 
+-- | A @Handler e r m a@ is a handler of effects with type @e@.
 --   The @ret@ field provides a function to lift pure values into the effect.
 --   The @fin@ field provides a function to extract a final value of type @r@ from the effect.
 --   The parameter @m@ should normally be left polymorphic, it's the monad that handles the other effects.
@@ -79,7 +78,7 @@ operation = operation'
 
 -- $basedoc
 -- The effects are layered on top of a base monad. Here's an example how to use `IO` as a base monad:
--- 
+--
 -- > exampleIO :: IO ()
 -- > exampleIO = runBase $ do
 -- >   with (ref 5) $ \x -> do
@@ -135,8 +134,8 @@ instance Functor Pure where
 
 instance Applicative Pure where
   pure = Pure
-  Pure f <*> Pure a = Pure (f a)  
-  
+  Pure f <*> Pure a = Pure (f a)
+
 instance Monad Pure where
   return = Pure
   Pure a >>= f = f a
@@ -151,7 +150,7 @@ instance Functor m => Functor (Base m) where
 instance Applicative m => Applicative (Base m) where
   pure = Base . pure
   Base m <*> Base v = Base (m <*> v)
-  
+
 instance Monad m => Monad (Base m) where
   return = Base . return
   Base m >>= f = Base $ m >>= runBase . f
@@ -165,7 +164,7 @@ class (Applicative m, Applicative n, Monad m, Monad n) => AutoLift e m n where
 
 instance (Applicative m, Applicative n, Monad m, Monad n, AutoLiftInternal (Layer e m) (Base    n) (Layer e m) (Base    n)) => AutoLift e m (Base    n) where
   operation' _ f = autolift (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy (Base    n)) (Layer f)
-instance (Applicative m, Applicative n, Monad m, Monad n, AutoLiftInternal (Layer e m) (Layer d n) (Layer e m) (Layer d n)) => AutoLift e m (Layer d n) where
+instance (Applicative m,                Monad m,          AutoLiftInternal (Layer e m) (Layer d n) (Layer e m) (Layer d n)) => AutoLift e m (Layer d n) where
   operation' _ f = autolift (Proxy :: Proxy (Layer e m)) (Proxy :: Proxy (Layer d n)) (Layer f)
 
 
@@ -174,7 +173,7 @@ class (Applicative m, Applicative n, Monad m, Monad n) => AutoLiftBase m n where
 
 instance (Applicative m, Applicative n, Monad m, Monad n, AutoLiftInternal (Base    m) (Base    n) (Base    m) (Base    n)) => AutoLiftBase m (Base    n) where
   base' m        = autolift (Proxy :: Proxy (Base    m)) (Proxy :: Proxy (Base    n)) (Base m)
-instance (Applicative m, Applicative n, Monad m, Monad n, AutoLiftInternal (Base    m) (Layer e n) (Base    m) (Layer e n)) => AutoLiftBase m (Layer e n) where
+instance (Applicative m,                Monad m,          AutoLiftInternal (Base    m) (Layer e n) (Base    m) (Layer e n)) => AutoLiftBase m (Layer e n) where
   base' m        = autolift (Proxy :: Proxy (Base    m)) (Proxy :: Proxy (Layer e n)) (Base m)
 
 

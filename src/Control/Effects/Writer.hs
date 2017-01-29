@@ -2,7 +2,6 @@
 module Control.Effects.Writer where
 
 import Control.Effects
-import Data.Monoid
 
 tell :: (AutoLift (w, r) m n, Monoid w) => Effect (w, r) m -> w -> n ()
 tell p v = operation p $ \k -> do
