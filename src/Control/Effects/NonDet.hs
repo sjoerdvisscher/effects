@@ -5,20 +5,22 @@ import Control.Effects
 import qualified Data.Set as Set
 import Prelude hiding (foldr)
 import Control.Applicative
-import Control.Newtype
+import Control.Newtype.Generics
 
+instance (Applicative m, Semigroup r) => Semigroup (WrappedMonad m r) where
+  WrapMonad a <> WrapMonad b = WrapMonad $ liftA2 (<>) a b
 instance (Applicative m, Monoid r) => Monoid (WrappedMonad m r) where
-  mempty                              = WrapMonad $ pure mempty
-  mappend (WrapMonad a) (WrapMonad b) = WrapMonad $ liftA2 mappend a b
+  mempty = WrapMonad $ pure mempty
 
 newtype WrappedAlt f a = WrapAlt (f a)
 instance Newtype (WrappedAlt m a) where
   type O (WrappedAlt m a) = m a
   pack = WrapAlt
   unpack (WrapAlt a) = a
+instance Alternative f => Semigroup (WrappedAlt f a) where
+  WrapAlt a <> WrapAlt b = WrapAlt $ a <|> b
 instance Alternative f => Monoid (WrappedAlt f a) where
-  mempty                          = WrapAlt empty
-  mappend (WrapAlt a) (WrapAlt b) = WrapAlt $ a <|> b
+  mempty = WrapAlt empty
 
 choose :: (AutoLift r m n, Monoid r, Foldable f) => Effect r m -> f a -> n a
 choose p as = operation p $ \k -> ala' WrapMonad foldMap k as
@@ -46,13 +48,14 @@ accumulate f = Handler
   }
 
 newtype BFS r = BFS (Int -> Maybe r)
+instance Semigroup r => Semigroup (BFS r) where
+  BFS f <> BFS g = BFS $ \d -> if d == 0 then f d else f d <> g (d - 1)
 instance Monoid r => Monoid (BFS r) where
-  mempty                = BFS $ \d -> if d == 0 then Just mempty else Nothing
-  BFS f `mappend` BFS g = BFS $ \d -> if d == 0 then f d else f d `mappend` g (d - 1)
+  mempty = BFS $ \d -> if d == 0 then Just mempty else Nothing
 instance Monoid r => Newtype (BFS r) where
   type O (BFS r) = r
   pack r                = BFS $ \d -> if d == 0 then Just r else Nothing
-  unpack (BFS f)        = loop 0 where loop d = maybe mempty (`mappend` loop (d + 1)) (f d)
+  unpack (BFS f)        = loop 0 where loop d = maybe mempty (<> loop (d + 1)) (f d)
 
 bfs :: (Monad m, Monoid r) => (a -> r) -> Handler (BFS r) r m a
 bfs f = accumulate (pack . f)
